@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Retro Catch DX</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg1:#05060a;
+      --bg2:#090d17;
+      --neon:#00ffd5;
+      --neon2:#ff4fd8;
+      --warn:#ffd400;
+      --text:#eaffff;
+      --panel:rgba(8,14,26,.82);
+    }
+
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
+
+    html,body{
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family:'Press Start 2P',cursive;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top,#0f1630 0%,transparent 35%),
+        linear-gradient(180deg,var(--bg2),var(--bg1));
+    }
+
+    body{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size:32px 32px;
+      opacity:0.2;
+      animation:gridMove 10s linear infinite;
+    }
+
+    @keyframes gridMove{
+      from{ transform:translateY(0); }
+      to{ transform:translateY(32px); }
+    }
+
+    .wrap{
+      width:100vw;
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:8px;
+    }
+
+    .shell{
+      width:min(1100px,100%);
+      height:100%;
+      display:grid;
+      grid-template-rows:auto auto auto auto 1fr;
+      gap:8px;
+      align-items:center;
+    }
+
+    h1{
+      font-size:clamp(18px,2vw,34px);
+      text-align:center;
+      color:var(--neon);
+      text-shadow:0 0 12px var(--neon);
+    }
+
+    .sub{
+      text-align:center;
+      font-size:8px;
+      line-height:1.5;
+    }
+
+    .hud{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:8px;
+    }
+
+    .chip{
+      background:var(--panel);
+      border:1px solid rgba(0,255,213,.35);
+      padding:8px;
+      border-radius:14px;
+      text-align:center;
+      font-size:8px;
+    }
+
+    .chip span{
+      display:block;
+      margin-top:6px;
+      font-size:14px;
+      color:var(--neon);
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:center;
+    }
+
+    button{
+      font-family:inherit;
+      font-size:8px;
+      padding:10px 12px;
+      background:black;
+      color:var(--neon);
+      border:1px solid var(--neon);
+      border-radius:12px;
+      cursor:pointer;
+    }
+
+    button:hover{
+      background:var(--neon);
+      color:black;
+    }
+
+    #gameArea{
+      width:min(72vh,72vw,520px);
+      height:min(72vh,72vw,520px);
+      justify-self:center;
+      align-self:center;
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+      border:2px solid var(--neon);
+      background:#08111f;
+      box-shadow:0 0 25px rgba(0,255,213,.25);
+    }
+
+    #target{
+      position:absolute;
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      background: linear-gradient(135deg, #ff4fd8, #ff7f50);
+      box-shadow:
+        0 0 16px rgba(255,79,216,.75),
+        0 0 30px rgba(255,79,216,.22),
+        inset 0 0 10px rgba(255,255,255,.15);
+      cursor:pointer;
+      z-index:2;
+      left:0;
+      top:0;
+    }
+
+    #target.dvd{
+      background: linear-gradient(135deg, #00ffd5, #5d7dff);
+      box-shadow:
+        0 0 18px rgba(0,255,213,.9),
+        0 0 34px rgba(93,125,255,.3),
+        inset 0 0 10px rgba(255,255,255,.15);
+    }
+
+    #target.boss{
+      background: linear-gradient(135deg, #ffe600, #ff9b00);
+      box-shadow:
+        0 0 18px rgba(255,214,0,.85),
+        0 0 40px rgba(255,155,0,.3);
+      width:54px;
+      height:54px;
+    }
+
+    .scanlines{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.03),
+        rgba(255,255,255,0.03) 1px,
+        transparent 1px,
+        transparent 5px
+      );
+      opacity:0.14;
+    }
+
+    .banner{
+      text-align:center;
+      font-size:8px;
+      color:var(--warn);
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:rgba(0,0,0,.75);
+      z-index:20;
+    }
+
+    .card{
+      width:min(520px,92vw);
+      padding:18px;
+      border-radius:18px;
+      background:#0b1020;
+      border:1px solid var(--neon);
+      text-align:center;
+    }
+
+    .card h2{
+      font-size:18px;
+      margin-bottom:12px;
+    }
+
+    .card p{
+      font-size:8px;
+      line-height:1.8;
+      margin:10px 0;
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .hidden{
+      display:none !important;
+    }
+
+    .particle{
+      position:absolute;
+      width:8px;
+      height:8px;
+      border-radius:2px;
+      pointer-events:none;
+      background:white;
+      box-shadow:0 0 10px rgba(255,255,255,0.5);
+      will-change:transform, opacity;
+      z-index:3;
+    }
+
+    @media (max-height:800px){
+      h1{font-size:20px;}
+      .chip span{font-size:12px;}
+      #gameArea{
+        width:min(62vh,62vw,430px);
+        height:min(62vh,62vw,430px);
+      }
+    }
+
+    @media (max-height:700px){
+      .shell{ gap:6px; }
+      .sub,.banner,button,.chip{ font-size:7px; }
+      #gameArea{
+        width:min(55vh,55vw,360px);
+        height:min(55vh,55vw,360px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="shell">
+      <h1>RETRO CATCH DX</h1>
+      <div class="sub">
+        Click the square before time runs out. Every 5 normal hits, a special DVD bounce round appears.
+      </div>
+
+      <div class="hud">
+        <div class="chip">SCORE<span id="score">0</span></div>
+        <div class="chip">ROUND<span id="round">0</span></div>
+        <div class="chip combo">COMBO<span id="combo">0</span></div>
+        <div class="chip">TIME<span id="time">0</span></div>
+        <div class="chip life">LIVES<span id="lives">-</span></div>
+        <div class="chip mode">MODE<span id="modeLabel">READY</span></div>
+      </div>
+
+      <div class="banner" id="banner">Pick a mode to start.</div>
+
+      <div class="controls">
+        <button onclick="startGame('chill')">Chill</button>
+        <button onclick="startGame('arcade')">Arcade</button>
+        <button onclick="startGame('hyper')">Hyper</button>
+        <button onclick="startGame('survival')">Survival</button>
+        <button onclick="resetHighScore()">Reset High Score</button>
+      </div>
+
+      <div id="gameArea">
+        <div id="target"></div>
+        <div class="scanlines"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="startOverlay" class="overlay">
+    <div class="card">
+      <h2>RETRO CATCH DX</h2>
+      <p>
+        Pick a mode above to begin.<br>
+        Every 5 normal hits, the target turns into a bouncing DVD square for a bonus round.<br>
+        Survival mode gives you 7 lives.
+      </p>
+      <p>
+        High Score: <span id="highScoreStart">0</span>
+      </p>
+      <div class="row">
+        <button onclick="startGame('chill')">Start Chill</button>
+        <button onclick="startGame('arcade')">Start Arcade</button>
+        <button onclick="startGame('hyper')">Start Hyper</button>
+        <button onclick="startGame('survival')">Start Survival</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOverOverlay" class="overlay hidden">
+    <div class="card">
+      <h2 id="gameOverTitle">GAME OVER</h2>
+      <p id="finalStats"></p>
+      <p>High Score: <span id="highScoreEnd">0</span></p>
+      <div class="row">
+        <button onclick="restartSameMode()">Play Again</button>
+        <button onclick="goToMenu()">Mode Select</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const gameArea = document.getElementById("gameArea");
+    const target = document.getElementById("target");
+    const scoreEl = document.getElementById("score");
+    const roundEl = document.getElementById("round");
+    const comboEl = document.getElementById("combo");
+    const timeEl = document.getElementById("time");
+    const livesEl = document.getElementById("lives");
+    const modeLabel = document.getElementById("modeLabel");
+    const banner = document.getElementById("banner");
+    const startOverlay = document.getElementById("startOverlay");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
+    const finalStats = document.getElementById("finalStats");
+    const gameOverTitle = document.getElementById("gameOverTitle");
+    const highScoreStart = document.getElementById("highScoreStart");
+    const highScoreEnd = document.getElementById("highScoreEnd");
+
+    const CONFIG = {
+      chill:    { time: 35, teleport: 1050, speed: 2.4 },
+      arcade:   { time: 25, teleport: 800,  speed: 3.4 },
+      hyper:    { time: 18, teleport: 620,  speed: 4.7 },
+      survival: { time: 22, teleport: 720,  speed: 4.0 }
+    };
+
+    let highScore = Number(localStorage.getItem("retroCatchHighScore") || 0);
+    let bestCombo = Number(localStorage.getItem("retroCatchBestCombo") || 0);
+
+    highScoreStart.textContent = highScore;
+    highScoreEnd.textContent = highScore;
+
+    let mode = "arcade";
+    let running = false;
+
+    let score = 0;
+    let round = 0;
+    let combo = 0;
+    let timeLeft = 0;
+    let lives = 0;
+
+    let bonusMode = false;
+    let bonusClears = 0;
+
+    let x = 0, y = 0, vx = 0, vy = 0;
+    let targetSize = 44;
+    let bonusEndsAt = 0;
+    let lastFrame = 0;
+    let nextTeleportAt = 0;
+    let teleportDelay = 800;
+
+    let timerInterval = null;
+    let rafId = null;
+
+    function updateHUD() {
+      scoreEl.textContent = score;
+      roundEl.textContent = round;
+      comboEl.textContent = combo;
+      timeEl.textContent = Math.max(0, timeLeft);
+      livesEl.textContent = mode === "survival" ? lives : "-";
+      modeLabel.textContent = bonusMode ? "DVD BONUS" : mode.toUpperCase();
+      highScoreStart.textContent = highScore;
+      highScoreEnd.textContent = highScore;
+    }
+
+    function setBanner(text) {
+      banner.textContent = text;
+    }
+
+    function areaBounds() {
+      const maxX = gameArea.clientWidth - targetSize;
+      const maxY = gameArea.clientHeight - targetSize;
+      return { maxX, maxY };
+    }
+
+    function moveTargetRandom() {
+      const { maxX, maxY } = areaBounds();
+      x = Math.random() * Math.max(0, maxX);
+      y = Math.random() * Math.max(0, maxY);
+      target.style.left = x + "px";
+      target.style.top = y + "px";
+    }
+
+    function burst(px, py, count = 12, palette = ["#00ffd5", "#ff4fd8", "#ffffff", "#ffd400"]) {
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement("div");
+        p.className = "particle";
+        const size = 5 + Math.random() * 7;
+        p.style.width = size + "px";
+        p.style.height = size + "px";
+        p.style.left = px + "px";
+        p.style.top = py + "px";
+        p.style.background = palette[Math.floor(Math.random() * palette.length)];
+        gameArea.appendChild(p);
+
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 30 + Math.random() * 60;
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist;
+        const rot = Math.random() * 360;
+
+        p.animate([
+          { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+          { transform: `translate(${tx}px, ${ty}px) rotate(${rot}deg)`, opacity: 0 }
+        ], {
+          duration: 520 + Math.random() * 300,
+          easing: "ease-out"
+        });
+
+        setTimeout(() => p.remove(), 820);
+      }
+    }
+
+    function burstAtTarget(count = 12, palette) {
+      burst(x + targetSize / 2, y + targetSize / 2, count, palette);
+    }
+
+    function spawnBonusDVD() {
+      bonusMode = true;
+      target.classList.add("dvd");
+      target.classList.remove("boss");
+
+      targetSize = 44;
+      target.style.width = targetSize + "px";
+      target.style.height = targetSize + "px";
+
+      const { maxX, maxY } = areaBounds();
+      x = Math.random() * Math.max(0, maxX);
+      y = Math.random() * Math.max(0, maxY);
+
+      const base = CONFIG[mode].speed;
+      const dirX = Math.random() < 0.5 ? -1 : 1;
+      const dirY = Math.random() < 0.5 ? -1 : 1;
+      vx = dirX * (base + Math.random() * 1.6);
+      vy = dirY * (base + Math.random() * 1.6);
+
+      bonusEndsAt = performance.now() + 7000;
+      nextTeleportAt = 0;
+      gameArea.classList.add("running");
+      setBanner("BONUS ROUND! Catch the bouncing DVD square.");
+      updateHUD();
+      target.style.left = x + "px";
+      target.style.top = y + "px";
+    }
+
+    function spawnNormalTarget() {
+      bonusMode = false;
+      target.classList.remove("dvd");
+      target.classList.remove("boss");
+
+      targetSize = 44;
+      target.style.width = targetSize + "px";
+      target.style.height = targetSize + "px";
+
+      moveTargetRandom();
+      teleportDelay = Math.max(280, CONFIG[mode].teleport - Math.floor(round / 4) * 35);
+      nextTeleportAt = performance.now() + teleportDelay;
+      setBanner("Normal round. Keep clicking!");
+      updateHUD();
+    }
+
+    function updateHighScore() {
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("retroCatchHighScore", String(highScore));
+      }
+      if (combo > bestCombo) {
+        bestCombo = combo;
+        localStorage.setItem("retroCatchBestCombo", String(bestCombo));
+      }
+    }
+
+    function endGame() {
+      running = false;
+      cancelAnimationFrame(rafId);
+      clearInterval(timerInterval);
+
+      updateHighScore();
+      updateHUD();
+
+      gameArea.classList.remove("running");
+      gameOverTitle.textContent = score >= highScore ? "NEW BEST?!" : "GAME OVER";
+      finalStats.innerHTML =
+        `Score: ${score}<br>` +
+        `Rounds: ${round}<br>` +
+        `Bonus Clears: ${bonusClears}<br>` +
+        `Best Combo: ${bestCombo}<br>` +
+        `Lives Left: ${mode === "survival" ? lives : "-"}<br>` +
+        `Mode: ${mode.toUpperCase()}`;
+
+      highScoreEnd.textContent = highScore;
+      gameOverOverlay.classList.remove("hidden");
+      setBanner("Finished. Pick a mode and go again.");
+    }
+
+    function startGame(selectedMode) {
+      mode = selectedMode;
+      running = true;
+      score = 0;
+      round = 0;
+      combo = 0;
+      bonusMode = false;
+      bonusClears = 0;
+      lives = (mode === "survival") ? 7 : 0;
+
+      timeLeft = CONFIG[mode].time;
+      teleportDelay = CONFIG[mode].teleport;
+      nextTeleportAt = 0;
+      lastFrame = 0;
+
+      startOverlay.classList.add("hidden");
+      gameOverOverlay.classList.add("hidden");
+      gameArea.classList.add("running");
+
+      targetSize = 44;
+      target.classList.remove("dvd");
+      target.classList.remove("boss");
+      target.style.width = targetSize + "px";
+      target.style.height = targetSize + "px";
+
+      updateHUD();
+      setBanner("Go!");
+
+      moveTargetRandom();
+      nextTeleportAt = performance.now() + teleportDelay;
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!running) return;
+        timeLeft--;
+        updateHUD();
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function restartSameMode() {
+      startGame(mode);
+    }
+
+    function goToMenu() {
+      gameOverOverlay.classList.add("hidden");
+      startOverlay.classList.remove("hidden");
+      updateHUD();
+      setBanner("Pick a mode to start.");
+    }
+
+    target.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (!running) return;
+
+      if (bonusMode) {
+        score += 3;
+        combo += 1;
+        bonusClears += 1;
+        burstAtTarget(20, ["#00ffd5", "#5d7dff", "#ffffff"]);
+        setBanner("BONUS HIT! +3");
+        bonusMode = false;
+        target.classList.remove("dvd");
+        target.classList.remove("boss");
+        targetSize = 44;
+        target.style.width = targetSize + "px";
+        target.style.height = targetSize + "px";
+        spawnNormalTarget();
+        timeLeft += 2;
+      } else {
+        score += 1;
+        round += 1;
+        combo += 1;
+        burstAtTarget(10, ["#ff4fd8", "#ffd400", "#ffffff"]);
+        setBanner("Nice!");
+
+        if (combo % 10 === 0) {
+          timeLeft += 3;
+          setBanner("Combo bonus! +3 seconds");
+        }
+
+        updateHighScore();
+
+        if (round > 0 && round % 5 === 0) {
+          spawnBonusDVD();
+        } else {
+          spawnNormalTarget();
+        }
+      }
+
+      if (combo > bestCombo) {
+        bestCombo = combo;
+        localStorage.setItem("retroCatchBestCombo", String(bestCombo));
+      }
+
+      updateHUD();
+    });
+
+    gameArea.addEventListener("click", function (event) {
+      if (!running) return;
+      if (event.target === target) return;
+
+      combo = 0;
+
+      if (mode === "survival") {
+        lives--;
+        updateHUD();
+
+        if (lives <= 0) {
+          setBanner("No lives left!");
+          endGame();
+          return;
+        }
+
+        setBanner("Missed! -1 life.");
+      } else {
+        updateHUD();
+        setBanner("Missed! Combo reset.");
+      }
+    });
+
+    function loop(ts) {
+      if (!running) return;
+
+      const dt = lastFrame ? (ts - lastFrame) / 16.67 : 1;
+      lastFrame = ts;
+
+      if (bonusMode) {
+        x += vx * dt;
+        y += vy * dt;
+
+        const { maxX, maxY } = areaBounds();
+
+        if (x <= 0) {
+          x = 0;
+          vx = Math.abs(vx);
+          burstAtTarget(4, ["#00ffd5", "#ffffff"]);
+        } else if (x >= maxX) {
+          x = maxX;
+          vx = -Math.abs(vx);
+          burstAtTarget(4, ["#00ffd5", "#ffffff"]);
+        }
+
+        if (y <= 0) {
+          y = 0;
+          vy = Math.abs(vy);
+          burstAtTarget(4, ["#5d7dff", "#ffffff"]);
+        } else if (y >= maxY) {
+          y = maxY;
+          vy = -Math.abs(vy);
+          burstAtTarget(4, ["#5d7dff", "#ffffff"]);
+        }
+
+        target.style.left = x + "px";
+        target.style.top = y + "px";
+
+        if (ts >= bonusEndsAt) {
+          bonusMode = false;
+          target.classList.remove("dvd");
+          spawnNormalTarget();
+          setBanner("Bonus round ended. Back to normal.");
+        }
+      } else {
+        if (ts >= nextTeleportAt) {
+          moveTargetRandom();
+          nextTeleportAt = ts + teleportDelay;
+        }
+      }
+
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function resetHighScore() {
+      localStorage.removeItem("retroCatchHighScore");
+      localStorage.removeItem("retroCatchBestCombo");
+      highScore = 0;
+      bestCombo = 0;
+      highScoreStart.textContent = 0;
+      highScoreEnd.textContent = 0;
+      setBanner("High score reset.");
+    }
+
+    updateHUD();
+
+    window.addEventListener("resize", () => {
+      if (running && !bonusMode) {
+        moveTargetRandom();
+      }
+    });
+  </script>
+</body>
+</html>
