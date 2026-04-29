@@ -432,6 +432,7 @@
       if (modeSelectSound) {
         try {
           modeSelectSound.currentTime = 0;
+          modeSelectSound.volume = 0.35 + Math.random() * 0.65;
           const playResult = modeSelectSound.play();
           if (playResult && typeof playResult.catch === "function") {
             playResult.catch(() => {
