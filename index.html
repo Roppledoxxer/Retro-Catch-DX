@@ -275,6 +275,8 @@
   </style>
 </head>
 <body>
+  <audio id="modeSelectSound" src="RCDX.wav" preload="auto" loop></audio>
+
   <div class="wrap">
     <div class="shell">
       <h1>RETRO CATCH DX</h1>
@@ -285,7 +287,7 @@
       <div class="hud">
         <div class="chip">SCORE<span id="score">0</span></div>
         <div class="chip">ROUND<span id="round">0</span></div>
-        <div class="chip combo">COMBO<span id="combo">0</span></div>
+        <div class="chip">COMBO<span id="combo">0</span></div>
         <div class="chip">TIME<span id="time">0</span></div>
         <div class="chip life">LIVES<span id="lives">-</span></div>
         <div class="chip mode">MODE<span id="modeLabel">READY</span></div>
@@ -356,6 +358,7 @@
     const gameOverTitle = document.getElementById("gameOverTitle");
     const highScoreStart = document.getElementById("highScoreStart");
     const highScoreEnd = document.getElementById("highScoreEnd");
+    const modeSelectSound = document.getElementById("modeSelectSound");
 
     const CONFIG = {
       chill:    { time: 35, teleport: 1050, speed: 2.4 },
@@ -391,6 +394,91 @@
 
     let timerInterval = null;
     let rafId = null;
+
+    let audioCtx = null;
+
+    function ensureAudioContext() {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      return audioCtx;
+    }
+
+    function playTone({
+      frequency = 440,
+      type = "sine",
+      duration = 0.08,
+      gain = 0.12,
+      startOffset = 0
+    } = {}) {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const amp = ctx.createGain();
+      const now = ctx.currentTime + startOffset;
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(frequency, now);
+
+      amp.gain.setValueAtTime(0.0001, now);
+      amp.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+      amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(amp);
+      amp.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.03);
+    }
+
+    function playMenuSound() {
+      const ctx = ensureAudioContext();
+
+      if (modeSelectSound) {
+        try {
+          modeSelectSound.currentTime = 0;
+          const playResult = modeSelectSound.play();
+          if (playResult && typeof playResult.catch === "function") {
+            playResult.catch(() => {
+              playTone({ frequency: 620, type: "triangle", duration: 0.06, gain: 0.03 });
+              playTone({ frequency: 820, type: "triangle", duration: 0.05, gain: 0.02, startOffset: 0.04 });
+            });
+          }
+          return;
+        } catch {
+          // fall through to Web Audio
+        }
+      }
+
+      if (ctx) {
+        playTone({ frequency: 620, type: "triangle", duration: 0.06, gain: 0.03 });
+        playTone({ frequency: 820, type: "triangle", duration: 0.05, gain: 0.02, startOffset: 0.04 });
+      }
+    }
+
+    function playHitSound(isBonus = false) {
+      ensureAudioContext();
+
+      if (isBonus) {
+        playTone({ frequency: 760, type: "square", duration: 0.07, gain: 0.16 });
+        playTone({ frequency: 1140, type: "triangle", duration: 0.06, gain: 0.12, startOffset: 0.03 });
+        playTone({ frequency: 1520, type: "sine", duration: 0.05, gain: 0.08, startOffset: 0.06 });
+      } else {
+        const f = 520 + Math.min(combo, 25) * 9;
+        playTone({ frequency: f, type: "square", duration: 0.06, gain: 0.14 });
+        playTone({ frequency: f * 1.5, type: "triangle", duration: 0.045, gain: 0.09, startOffset: 0.025 });
+      }
+    }
+
+    function playMissSound() {
+      ensureAudioContext();
+      playTone({ frequency: 180, type: "sawtooth", duration: 0.11, gain: 0.14 });
+      playTone({ frequency: 130, type: "sine", duration: 0.12, gain: 0.09, startOffset: 0.03 });
+    }
 
     function updateHUD() {
       scoreEl.textContent = score;
@@ -534,6 +622,8 @@
     }
 
     function startGame(selectedMode) {
+      playMenuSound();
+
       mode = selectedMode;
       running = true;
       score = 0;
@@ -594,6 +684,7 @@
       if (!running) return;
 
       if (bonusMode) {
+        playHitSound(true);
         score += 3;
         combo += 1;
         bonusClears += 1;
@@ -608,6 +699,7 @@
         spawnNormalTarget();
         timeLeft += 2;
       } else {
+        playHitSound(false);
         score += 1;
         round += 1;
         combo += 1;
@@ -640,6 +732,7 @@
       if (!running) return;
       if (event.target === target) return;
 
+      playMissSound();
       combo = 0;
 
       if (mode === "survival") {
